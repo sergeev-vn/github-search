@@ -101,8 +101,10 @@ export default {
       repos: null,
       error: null,
       userInfo: null,
-      sortNameOfRepos: "asc",
-      sortBy: "name",
+      sortColumn: {
+        sortNameOfRepos: "asc",
+        sortBy: "name",
+      },
       isLoading: false,
       currentPageUrl: 1,
       countPagesRepos: '',
@@ -112,8 +114,8 @@ export default {
   computed: {
     filteredRepos() {
       if (this.repos === null) return
-      let sortBy = this.sortBy,
-          sortNameOfRepos = this.sortNameOfRepos
+      let sortBy = this.sortColumn.sortBy,
+          sortNameOfRepos = this.sortColumn.sortNameOfRepos
 
       return this.repos.sort((a, b) => {
         if (sortNameOfRepos === "asc") {
@@ -132,25 +134,23 @@ export default {
   },
   methods: {
     getUserInfoAndRepos() {
+      const API_URL_GITHUB = 'https://api.github.com';
+     
       this.isLoading = true
 
       axios
         .all([
-          axios.get(`https://api.github.com/users/${this.search}`),
-          axios.get(`https://api.github.com/users/${this.search}/repos?page=${this.currentPageUrl}&per_page=${this.perPageRepos}`),
+          axios.get(`${API_URL_GITHUB}/users/${this.search}`),
+          axios.get(`${API_URL_GITHUB}/users/${this.search}/repos?page=${this.currentPageUrl}&per_page=${this.perPageRepos}`),
         ])
         .then(
           axios.spread((res1, res2) => {
-            this.userInfo = {}
             this.error = null
+            
+            const userApi1 = res1.data;
+            const {avatar_url, name, public_repos} = userApi1
+            this.userInfo = {avatar_url, name, public_repos}
 
-            let avatar_url = res1.data.avatar_url,
-              name = res1.data.name,
-              public_repos = res1.data.public_repos
-
-            this.userInfo.avatar_url = avatar_url
-            this.userInfo.name = name
-            this.userInfo.public_repos = public_repos
 
             this.countPagesRepos = public_repos / this.perPageRepos
 
@@ -167,18 +167,20 @@ export default {
         })
     },
      changeFilterSettings(name) {
-       this.sortBy = name
+       this.sortColumn.sortBy = name
       
-      if ( this.sortNameOfRepos === 'asc' ) 
-        this.sortNameOfRepos = 'desc'
+      if ( this.sortColumn.sortNameOfRepos === 'asc' ) 
+        this.sortColumn.sortNameOfRepos = 'desc'
       else 
-        this.sortNameOfRepos =  'asc'
+        this.sortColumn.sortNameOfRepos =  'asc'
      },
      loadMore() {
+        const API_URL_GITHUB = 'https://api.github.com';
+
        this.isLoading = true
 
        this.currentPageUrl++
-       axios.get(`https://api.github.com/users/${this.search}/repos?page=${this.currentPageUrl}&per_page=${this.perPageRepos}`).then(res => {
+       axios.get(`${API_URL_GITHUB}/users/${this.search}/repos?page=${this.currentPageUrl}&per_page=${this.perPageRepos}`).then(res => {
           this.repos.push.apply(this.repos, res.data);
        }).catch((e) => {
          this.error = e
